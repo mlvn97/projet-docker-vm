@@ -20,7 +20,7 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: ${{ secrets.DATABASE_USERNAME }}
+          POSTGRES_USER: ${{ vars.DATABASE_USERNAME }}
           POSTGRES_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
           POSTGRES_DB: vm_database
         ports:
@@ -41,6 +41,6 @@ jobs:
         run: mvn clean install
         working-directory: ./projet-vm-api
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_URL: ${{ vars.DATABASE_URL }}
+          DATABASE_USERNAME: ${{ vars.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
