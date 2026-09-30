@@ -39,7 +39,7 @@ jobs:
 
       - name: Maven build
         run: mvn clean install
-        working-directory: ./projet-vm-api
+        working-directory: ./projet-vm
         env:
           DATABASE_URL: ${{ vars.DATABASE_URL }}
           DATABASE_USERNAME: ${{ vars.DATABASE_USERNAME }}
