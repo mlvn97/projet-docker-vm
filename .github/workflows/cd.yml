@@ -1,0 +1,58 @@
+on:
+  workflow_run:
+    workflows: ["ci"]
+    types: [completed]
+    branches: [main]
+
+jobs: 
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Copy Compose file to Azure VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_NAME }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          source: docker-compose.yml
+          target: /home/${{ secrets.VM_NAME }}/projet-vm
+          overwrite: true
+
+      - name: Pull image and restart application
+        uses: appleboy/ssh-action@v1.2.2
+        env:
+          IMAGE_NAME: ghcr.io/${{ github.repository }}:sha-${{ github.event.workflow_run.head_sha }}
+          WEB_IMAGE_NAME: ghcr.io/${{ github.repository }}-web:sha-${{ github.event.workflow_run.head_sha }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_NAME }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          envs: IMAGE_NAME,WEB_IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,POSTGRES_PASSWORD,POSTGRES_USER,POSTGRES_DB
+          script: |
+            set -eu
+            : "${POSTGRES_PASSWORD:?Add POSTGRES_PASSWORD to GitHub Actions secrets}"
+            cd "$HOME/projet-vm"
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+            export DOCKER_IMAGE="$IMAGE_NAME"
+            export DOCKER_IMAGE_WEB="$WEB_IMAGE_NAME"
+            export POSTGRES_DB="$POSTGRES_DB"
+            export POSTGRES_USER="$POSTGRES_USER"
+            export POSTGRES_PASSWORD="$POSTGRES_PASSWORD"
+            docker compose pull api web
+            docker compose up -d --no-build
