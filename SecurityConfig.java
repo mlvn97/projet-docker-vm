@@ -14,7 +14,7 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health/**", "/actuator/prometheus").permitAll()
-                .anyRequest().authenticated())
+                .anyRequest().permitAll())
             .httpBasic(Customizer.withDefaults());
         return http.build();
     }
