@@ -1,6 +1,6 @@
 services:
   prometheus:
-    image: prom/prometheus:v3.15.0
+    image: prom/prometheus:v3.15.0  # Set version to avoid compatibility problems
     container_name: prometheus
     restart: unless-stopped
     command:
@@ -12,26 +12,27 @@ services:
         target: /etc/prometheus/prometheus.yml
     volumes:
       - prometheus_data:/prometheus
-    ports:
-      - "9090:10900"
+    expose:
+      - "9090"  # Not published on the host, only reachable from the "monitoring" network
     networks:
       - monitoring
 
   grafana:
-    image: grafana/grafana:13.2.3
+    image: grafana/grafana:13.2.3 # Set version to avoid compatibility problems
     container_name: grafana
     restart: unless-stopped
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_USERS_ALLOW_SIGN_UP=false  # No registration for identity control
     configs:
       - source: grafana_datasource
         target: /etc/grafana/provisioning/datasources/prometheus.yml
     volumes:
       - grafana_data:/var/lib/grafana
     ports:
-      - "3000:10300"
+      # Bound to GRAFANA_BIND_IP (host LAN IP) so it is only reachable from the local network
+      - "${GRAFANA_BIND_IP}:10300:3000" # Forward 3000 to 10300 to avoid using default port
     depends_on:
       - prometheus
     networks:
@@ -47,12 +48,12 @@ configs:
       scrape_configs:
         - job_name: prometheus
           static_configs:
-            - targets: ["localhost:10900"]
-
-        # Add your own targets here, e.g.:
+            - targets: ["localhost:9090"]
+        
+        # Add your own targets using this template : 
         # - job_name: my-app
         #   static_configs:
-        #     - targets: ["my-app:8080"]
+        #     - targets: ["my-app:port"]
 
   grafana_datasource:
     content: |
@@ -61,7 +62,7 @@ configs:
         - name: Prometheus
           type: prometheus
           access: proxy
-          url: http://prometheus:10900
+          url: http://prometheus:9090
           isDefault: true
 
 volumes:
