@@ -13,7 +13,7 @@ services:
     volumes:
       - prometheus_data:/prometheus
     ports:
-      - "9090:10900"
+      - "${PROMETHEUS_HOST_PORT:-9090}:9090"
     networks:
       - monitoring
 
@@ -31,11 +31,47 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
     ports:
-      - "3000:10300"
+      - "${GRAFANA_HOST_PORT:-3000}:3000"
     depends_on:
       - prometheus
     networks:
       - monitoring
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: ${DOCKER_IMAGE:-projet-vm:local}
+    build:
+      context: ./projet-vm
+    ports:
+      - "${API_HOST_PORT:-8080}:8080"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DATABASE_USERNAME: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    image: ${DOCKER_IMAGE_WEB:-projet-vm-web:local}
+    build:
+      context: ./projet-vm-web
+    ports:
+      - "${WEB_HOST_PORT:-8000}:80"
 
 configs:
   prometheus_config:
@@ -47,7 +83,7 @@ configs:
       scrape_configs:
         - job_name: prometheus
           static_configs:
-            - targets: ["localhost:10900"]
+            - targets: ["localhost:9090"]
 
         # Add your own targets here, e.g.:
         # - job_name: my-app
@@ -61,12 +97,13 @@ configs:
         - name: Prometheus
           type: prometheus
           access: proxy
-          url: http://prometheus:10900
+          url: http://prometheus:9090
           isDefault: true
 
 volumes:
   prometheus_data:
   grafana_data:
+  postgres_data:
 
 networks:
   monitoring:
