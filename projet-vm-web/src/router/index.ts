@@ -12,6 +12,13 @@ const routes: Array<RouteRecordRaw> = [
     name: "projet",
     component: () => import("../pages/Home.vue"),
     props: true
+  },
+
+  {
+    path: "/pages/:num",
+    name: "pages",
+    component: () => import ("../pages/Slides.vue"),
+    props: true
   }
 ];
 

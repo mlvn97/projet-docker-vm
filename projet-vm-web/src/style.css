@@ -1,9 +1,5 @@
-body {
-    background-color: rgb(24, 24, 24);
-    color: whitesmoke;
-}
-
 * {
-    font-family: 'Arial', sans-serif;
-    font-weight: bold;
+  font-family: 'Arial', sans-serif;
+  font-weight: bold;
+  color: white;
 }
