@@ -31,7 +31,6 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
     ports:
-      # Bound to GRAFANA_BIND_IP (host LAN IP) so it is only reachable from the local network
       - "${GRAFANA_BIND_IP}:10300:3000" # Forward 3000 to 10300 to avoid using default port
     depends_on:
       - prometheus
