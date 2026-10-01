@@ -1,0 +1,3 @@
+# À ajouter à la fin de application.properties
+management.endpoints.web.exposure.include=health,prometheus
+management.endpoint.health.probes.enabled=true
